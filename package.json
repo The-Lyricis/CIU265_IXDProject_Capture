@@ -1,0 +1,9 @@
+{
+  "name": "ciu265-ixd-project-capture",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Citizen Lens capture and voting client for Vercel.",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.56.0"
+  }
+}

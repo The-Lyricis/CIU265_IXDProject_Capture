@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Lens Capture</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <section class="camera-section">
+            <div class="viewfinder-container">
+                <video id="video" autoplay playsinline></video>
+                <div class="shutter-overlay" id="shutter-overlay"></div>
+            </div>
+            <label class="camera-picker-wrap" for="camera-picker">
+                <span class="camera-picker-label">Camera</span>
+                <select id="camera-picker" class="camera-picker">
+                    <option value="">Auto</option>
+                </select>
+            </label>
+            <button id="snap-btn">CAPTURE</button>
+        </section>
+
+        <section class="wall-section">
+            <h2 class="wall-title">VOTE FOR TODAY&apos;S BEST NEWS</h2>
+            <div class="photo-wall" id="photo-wall">
+                <div class="photo-cell best-cell" data-position="0">
+                    <span class="best-label">BEST</span>
+                    <div class="photo-slot"></div>
+                    <div class="vote-row">
+                        <button class="vote-btn" type="button">VOTE</button>
+                        <span class="vote-count">0</span>
+                    </div>
+                </div>
+                <div class="photo-cell" data-position="1">
+                    <div class="photo-slot"></div>
+                    <div class="vote-row">
+                        <button class="vote-btn" type="button">VOTE</button>
+                        <span class="vote-count">0</span>
+                    </div>
+                </div>
+                <div class="photo-cell" data-position="2">
+                    <div class="photo-slot"></div>
+                    <div class="vote-row">
+                        <button class="vote-btn" type="button">VOTE</button>
+                        <span class="vote-count">0</span>
+                    </div>
+                </div>
+                <div class="photo-cell" data-position="3">
+                    <div class="photo-slot"></div>
+                    <div class="vote-row">
+                        <button class="vote-btn" type="button">VOTE</button>
+                        <span class="vote-count">0</span>
+                    </div>
+                </div>
+                <div class="photo-cell" data-position="4">
+                    <div class="photo-slot"></div>
+                    <div class="vote-row">
+                        <button class="vote-btn" type="button">VOTE</button>
+                        <span class="vote-count">0</span>
+                    </div>
+                </div>
+                <div class="photo-cell" data-position="5">
+                    <div class="photo-slot"></div>
+                    <div class="vote-row">
+                        <button class="vote-btn" type="button">VOTE</button>
+                        <span class="vote-count">0</span>
+                    </div>
+                </div>
+                <div class="photo-cell" data-position="6">
+                    <div class="photo-slot"></div>
+                    <div class="vote-row">
+                        <button class="vote-btn" type="button">VOTE</button>
+                        <span class="vote-count">0</span>
+                    </div>
+                </div>
+                <div class="photo-cell" data-position="7">
+                    <div class="photo-slot"></div>
+                    <div class="vote-row">
+                        <button class="vote-btn" type="button">VOTE</button>
+                        <span class="vote-count">0</span>
+                    </div>
+                </div>
+                <div class="photo-cell" data-position="8">
+                    <div class="photo-slot"></div>
+                    <div class="vote-row">
+                        <button class="vote-btn" type="button">VOTE</button>
+                        <span class="vote-count">0</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
