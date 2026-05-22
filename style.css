@@ -292,3 +292,19 @@ body {
         box-sizing: border-box;
     }
 }
+
+.serial-status {
+    margin: 12px 0 0;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: #555;
+    text-align: center;
+    max-width: 500px;
+}
+
+.serial-status.connected { color: #1f8f4a; font-weight: bold; }
+.serial-status.error     { color: #b53a3a; font-weight: bold; }
+
+#snap-btn.connected {
+    background-color: #1f8f4a;
+}
