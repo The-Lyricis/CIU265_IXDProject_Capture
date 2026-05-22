@@ -106,8 +106,13 @@ function upsertPhoto(row) {
     const photo = normalizePhoto(row);
     if (!photo) return;
     const index = photoLibrary.findIndex((p) => p.id === photo.id);
-    if (index >= 0) photoLibrary[index] = photo;
-    else {
+    if (index >= 0) {
+        // 投票/实时更新的行常常不带 image_data，若新数据没有图片就保留原来的，避免图丢失
+        if (!photo.dataUrl && photoLibrary[index].dataUrl) {
+            photo.dataUrl = photoLibrary[index].dataUrl;
+        }
+        photoLibrary[index] = photo;
+    } else {
         photoLibrary.push(photo);
         while (photoLibrary.length > MAX_LIBRARY) photoLibrary.shift();
     }
@@ -144,8 +149,12 @@ function renderCell(cell, photo) {
     if (photo) {
         cell.dataset.photoId = photo.id;
         const existing = slot.querySelector('img');
-        if (!existing || existing.dataset.photoId !== photo.id) {
-            slot.innerHTML = `<img src="${photo.dataUrl}" data-photo-id="${photo.id}">`;
+        if (photo.dataUrl) {
+            if (!existing || existing.dataset.photoId !== photo.id) {
+                slot.innerHTML = `<img src="${photo.dataUrl}" data-photo-id="${photo.id}">`;
+            }
+        } else if (existing) {
+            slot.innerHTML = '';
         }
         countEl.textContent = String(photo.votes);
         const cooldownEnd = voteCooldownUntil.get(photo.id);
