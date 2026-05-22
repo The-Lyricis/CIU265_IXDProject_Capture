@@ -107,9 +107,11 @@ function upsertPhoto(row) {
     if (!photo) return;
     const index = photoLibrary.findIndex((p) => p.id === photo.id);
     if (index >= 0) {
-        // 投票/实时更新的行常常不带 image_data，若新数据没有图片就保留原来的，避免图丢失
-        if (!photo.dataUrl && photoLibrary[index].dataUrl) {
-            photo.dataUrl = photoLibrary[index].dataUrl;
+        const prev = photoLibrary[index];
+        // 图片内容创建后不会改变。一旦本地已有该图的有效数据，就始终保留它，
+        // 不让后续投票/实时更新推送来的「空」或「被截断」的 image_data 覆盖（否则换格子重建 <img> 时会变破图）
+        if (prev.dataUrl) {
+            photo.dataUrl = prev.dataUrl;
         }
         photoLibrary[index] = photo;
     } else {
@@ -151,7 +153,7 @@ function renderCell(cell, photo) {
         const existing = slot.querySelector('img');
         if (photo.dataUrl) {
             if (!existing || existing.dataset.photoId !== photo.id) {
-                slot.innerHTML = `<img src="${photo.dataUrl}" data-photo-id="${photo.id}">`;
+                slot.innerHTML = `<img src="${photo.dataUrl}" data-photo-id="${photo.id}" onerror="this.style.display='none'">`;
             }
         } else if (existing) {
             slot.innerHTML = '';
