@@ -175,22 +175,34 @@ function ensureCooldownTicker() {
     }, 250);
 }
 
+// 取景框比例（4:3），拍照按此比例居中裁剪，保证所见即所得
+const CAPTURE_ASPECT = 4 / 3;
+
 function captureFrameDataUrl(quality) {
     const vw = video.videoWidth;
     const vh = video.videoHeight;
     if (!vw || !vh) return null;
-    canvas.width = vw;
-    canvas.height = vh;
+
+    // 按 4:3 居中裁剪视频源，模拟取景框的 object-fit: cover
+    let sw = vw;
+    let sh = Math.round(vw / CAPTURE_ASPECT);
+    if (sh > vh) {
+        sh = vh;
+        sw = Math.round(vh * CAPTURE_ASPECT);
+    }
+    const sx = Math.round((vw - sw) / 2);
+    const sy = Math.round((vh - sh) / 2);
+
+    canvas.width = sw;
+    canvas.height = sh;
     const ctx = canvas.getContext('2d');
     ctx.globalCompositeOperation = 'source-over';
-    ctx.drawImage(video, 0, 0, vw, vh);
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
 
-    // 叠加新闻边框：screen 模式让黑底透明，与取景框一致
+    // 叠加新闻边框（PNG 已带透明通道，普通合成即可）
     const overlay = overlayImages[currentOverlayKey];
     if (overlay && overlay.complete && overlay.naturalWidth) {
-        ctx.globalCompositeOperation = 'screen';
-        drawCover(ctx, overlay, vw, vh);
-        ctx.globalCompositeOperation = 'source-over';
+        drawCover(ctx, overlay, sw, sh);
     }
 
     return canvas.toDataURL('image/jpeg', quality);
