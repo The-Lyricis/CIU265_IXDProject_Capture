@@ -11,12 +11,20 @@
         <section class="camera-section">
             <div class="viewfinder-container">
                 <video id="video" autoplay playsinline></video>
+                <img id="overlay-img" class="overlay-img" alt="">
                 <div class="shutter-overlay" id="shutter-overlay"></div>
             </div>
             <label class="camera-picker-wrap" for="camera-picker">
                 <span class="camera-picker-label">Camera</span>
                 <select id="camera-picker" class="camera-picker">
                     <option value="">Auto</option>
+                </select>
+            </label>
+            <label class="camera-picker-wrap" for="overlay-picker">
+                <span class="camera-picker-label">News Frame</span>
+                <select id="overlay-picker" class="camera-picker">
+                    <option value="test1">test1</option>
+                    <option value="test2">test2</option>
                 </select>
             </label>
         </section>

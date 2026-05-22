@@ -79,6 +79,19 @@ body {
     background: white;
     opacity: 0;
     pointer-events: none;
+    z-index: 3;
+}
+
+.overlay-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* 黑底变透明，透出摄像头画面，只留白字与红色 NEWS 块 */
+    mix-blend-mode: screen;
+    pointer-events: none;
+    z-index: 2;
 }
 
 .flash-animation {

@@ -13,6 +13,8 @@ const canvas = document.getElementById('canvas');
 const toast = document.getElementById('toast');
 const shutter = document.getElementById('shutter-overlay');
 const cameraPicker = document.getElementById('camera-picker');
+const overlayPicker = document.getElementById('overlay-picker');
+const overlayImg = document.getElementById('overlay-img');
 const photoWall = document.getElementById('photo-wall');
 const cells = Array.from(photoWall.querySelectorAll('.photo-cell'));
 
@@ -23,6 +25,41 @@ let activeStream = null;
 let supabase = null;
 let currentSessionId = null;
 let currentCameraDeviceId = '';
+
+// ----------------------------------------------------
+// 新闻边框叠加：test1 -> testnews.png, test2 -> testnews2.png
+// 黑底用 screen 混合视为透明，拍照时合成进 canvas
+// ----------------------------------------------------
+const OVERLAY_SOURCES = {
+    test1: './testnews.png',
+    test2: './testnews2.png',
+};
+let currentOverlayKey = 'test1';
+const overlayImages = {};
+
+function preloadOverlays() {
+    for (const [key, src] of Object.entries(OVERLAY_SOURCES)) {
+        const img = new Image();
+        img.src = src;
+        overlayImages[key] = img;
+    }
+}
+
+function applyOverlaySelection() {
+    currentOverlayKey = overlayPicker?.value || 'test1';
+    if (overlayImg) overlayImg.src = OVERLAY_SOURCES[currentOverlayKey] || '';
+}
+
+// 把图片以 object-fit: cover 的方式画满目标尺寸
+function drawCover(ctx, img, cw, ch) {
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    if (!iw || !ih) return;
+    const scale = Math.max(cw / iw, ch / ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+}
 
 function showToast(message, isError = false) {
     if (!toast) return;
@@ -144,7 +181,18 @@ function captureFrameDataUrl(quality) {
     if (!vw || !vh) return null;
     canvas.width = vw;
     canvas.height = vh;
-    canvas.getContext('2d').drawImage(video, 0, 0, vw, vh);
+    const ctx = canvas.getContext('2d');
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(video, 0, 0, vw, vh);
+
+    // 叠加新闻边框：screen 模式让黑底透明，与取景框一致
+    const overlay = overlayImages[currentOverlayKey];
+    if (overlay && overlay.complete && overlay.naturalWidth) {
+        ctx.globalCompositeOperation = 'screen';
+        drawCover(ctx, overlay, vw, vh);
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
     return canvas.toDataURL('image/jpeg', quality);
 }
 
@@ -383,6 +431,10 @@ function handleShutterKey(event) {
 photoWall.addEventListener('click', handleWallClick);
 window.addEventListener('keydown', handleShutterKey);
 cameraPicker?.addEventListener('change', handleCameraChange);
+overlayPicker?.addEventListener('change', applyOverlaySelection);
+
+preloadOverlays();
+applyOverlaySelection();
 
 await setupSupabase();
 await loadCurrentSession();
