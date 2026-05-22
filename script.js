@@ -50,12 +50,12 @@ function applyOverlaySelection() {
     if (overlayImg) overlayImg.src = OVERLAY_SOURCES[currentOverlayKey] || '';
 }
 
-// 把图片以 object-fit: cover 的方式画满目标尺寸
-function drawCover(ctx, img, cw, ch) {
+// 把图片以 object-fit: contain 的方式完整放入目标尺寸（不裁切，居中留边）
+function drawContain(ctx, img, cw, ch) {
     const iw = img.naturalWidth || img.width;
     const ih = img.naturalHeight || img.height;
     if (!iw || !ih) return;
-    const scale = Math.max(cw / iw, ch / ih);
+    const scale = Math.min(cw / iw, ch / ih);
     const dw = iw * scale;
     const dh = ih * scale;
     ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
@@ -199,10 +199,10 @@ function captureFrameDataUrl(quality) {
     ctx.globalCompositeOperation = 'source-over';
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
 
-    // 叠加新闻边框（PNG 已带透明通道，普通合成即可）
+    // 叠加新闻边框（PNG 已带透明通道；contain 完整显示不裁切）
     const overlay = overlayImages[currentOverlayKey];
     if (overlay && overlay.complete && overlay.naturalWidth) {
-        drawCover(ctx, overlay, sw, sh);
+        drawContain(ctx, overlay, sw, sh);
     }
 
     return canvas.toDataURL('image/jpeg', quality);
