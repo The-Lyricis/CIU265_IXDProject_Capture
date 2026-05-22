@@ -10,12 +10,10 @@ const PHOTO_TABLE = 'citizen_photos';
 
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
-const snapBtn = document.getElementById('snap-btn');
 const toast = document.getElementById('toast');
 const shutter = document.getElementById('shutter-overlay');
 const cameraPicker = document.getElementById('camera-picker');
 const photoWall = document.getElementById('photo-wall');
-const serialStatus = document.getElementById('serial-status');
 const cells = Array.from(photoWall.querySelectorAll('.photo-cell'));
 
 const photoLibrary = [];
@@ -365,118 +363,25 @@ function handleWallClick(event) {
 }
 
 // ----------------------------------------------------
-// Web Serial：读取 Arduino 串口，实体按键触发拍照
-// 协议：Arduino 在 D7 按下时通过 115200 串口打印 "Button Clicked!"
+// 实体快门：Arduino 作为 USB 键盘，按键按下时敲 F9
+// 网页监听 F9 即触发拍照，无需任何连接步骤或按钮
 // ----------------------------------------------------
-const SERIAL_BAUD = 115200;
-const TRIGGER_LINE = 'Button Clicked!';
-// 实体按键去抖：忽略 1.2 秒内重复触发，避免抖动连拍
-const SERIAL_TRIGGER_DEBOUNCE_MS = 1200;
+const SHUTTER_KEY = 'F9';
+const KEY_DEBOUNCE_MS = 800; // 防止按键自动重复造成连拍
+let lastKeyTriggerAt = 0;
 
-let serialPort = null;
-let serialReader = null;
-let serialConnected = false;
-let lastSerialTriggerAt = 0;
-
-function setSerialStatus(message, state = '') {
-    if (!serialStatus) return;
-    serialStatus.textContent = message;
-    serialStatus.classList.remove('connected', 'error');
-    if (state) serialStatus.classList.add(state);
-}
-
-function handleSerialLine(line) {
-    const text = line.trim();
-    if (text !== TRIGGER_LINE) return;
+function handleShutterKey(event) {
+    if (event.key !== SHUTTER_KEY && event.code !== SHUTTER_KEY) return;
+    event.preventDefault();
+    if (event.repeat) return;
     const now = Date.now();
-    if (now - lastSerialTriggerAt < SERIAL_TRIGGER_DEBOUNCE_MS) return;
-    lastSerialTriggerAt = now;
+    if (now - lastKeyTriggerAt < KEY_DEBOUNCE_MS) return;
+    lastKeyTriggerAt = now;
     takePhoto();
 }
 
-async function readSerialLoop(port) {
-    const textDecoder = new TextDecoderStream();
-    const readableClosed = port.readable.pipeTo(textDecoder.writable).catch(() => {});
-    serialReader = textDecoder.readable.getReader();
-
-    let buffer = '';
-    try {
-        for (;;) {
-            const { value, done } = await serialReader.read();
-            if (done) break;
-            buffer += value;
-            let newlineIndex;
-            while ((newlineIndex = buffer.search(/\r?\n/)) >= 0) {
-                const line = buffer.slice(0, newlineIndex);
-                buffer = buffer.slice(buffer.indexOf('\n', newlineIndex) + 1);
-                handleSerialLine(line);
-            }
-        }
-    } catch (err) {
-        console.warn('[serial] read error:', err);
-    } finally {
-        try { serialReader.releaseLock(); } catch (_) {}
-        await readableClosed;
-    }
-}
-
-async function disconnectSerial() {
-    serialConnected = false;
-    try { if (serialReader) await serialReader.cancel(); } catch (_) {}
-    try { if (serialPort) await serialPort.close(); } catch (_) {}
-    serialReader = null;
-    serialPort = null;
-    snapBtn.classList.remove('connected');
-    snapBtn.textContent = 'CONNECT BUTTON';
-    setSerialStatus('已断开。点击重新连接 Arduino 拍照按钮', 'error');
-}
-
-async function connectSerial() {
-    if (!('serial' in navigator)) {
-        setSerialStatus('此浏览器不支持 Web Serial，请使用 Chrome 或 Edge', 'error');
-        showToast('浏览器不支持串口', true);
-        return;
-    }
-
-    try {
-        const port = await navigator.serial.requestPort();
-        await port.open({ baudRate: SERIAL_BAUD });
-        serialPort = port;
-        serialConnected = true;
-
-        snapBtn.classList.add('connected');
-        snapBtn.textContent = 'BUTTON CONNECTED';
-        setSerialStatus('已连接，按下实体按键即可拍照', 'connected');
-        showToast('Arduino 已连接');
-
-        port.addEventListener?.('disconnect', () => disconnectSerial());
-
-        readSerialLoop(port).then(() => {
-            if (serialConnected) disconnectSerial();
-        });
-    } catch (err) {
-        console.error('[serial] connect failed:', err);
-        // 用户取消选择串口不算错误
-        if (err && err.name === 'NotFoundError') {
-            setSerialStatus('未选择串口，点击重试', '');
-            return;
-        }
-        setSerialStatus('连接失败：' + (err?.message || err), 'error');
-        showToast('串口连接失败', true);
-    }
-}
-
-function handleSnapButton() {
-    if (serialConnected) {
-        // 已连接时再次点击可断开
-        disconnectSerial();
-    } else {
-        connectSerial();
-    }
-}
-
 photoWall.addEventListener('click', handleWallClick);
-snapBtn.addEventListener('click', handleSnapButton);
+window.addEventListener('keydown', handleShutterKey);
 cameraPicker?.addEventListener('change', handleCameraChange);
 
 await setupSupabase();
