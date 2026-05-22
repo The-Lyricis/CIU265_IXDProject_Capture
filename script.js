@@ -14,6 +14,8 @@ const toast = document.getElementById('toast');
 const shutter = document.getElementById('shutter-overlay');
 const cameraPicker = document.getElementById('camera-picker');
 const overlayImg = document.getElementById('overlay-img');
+const freezeImg = document.getElementById('freeze-img');
+const captureStatus = document.getElementById('capture-status');
 const newsPrev = document.getElementById('news-prev');
 const newsNext = document.getElementById('news-next');
 const newsCurrent = document.getElementById('news-current');
@@ -85,6 +87,40 @@ function flashShutter() {
     shutter.classList.remove('flash-animation');
     void shutter.offsetWidth;
     shutter.classList.add('flash-animation');
+}
+
+// ----------------------------------------------------
+// 拍照保护 & 定格：拍下后取景框定格 3 秒，期间禁止再次触发
+// ----------------------------------------------------
+const CAPTURE_FREEZE_MS = 3000;
+let captureLockUntil = 0;
+let freezeTimerId = null;
+
+function setCaptureStatus(active) {
+    if (!captureStatus) return;
+    captureStatus.textContent = active ? 'A new headline just dropped!' : 'Awaiting photo shoot';
+    captureStatus.classList.toggle('active', active);
+}
+
+function showFreeze(dataUrl) {
+    if (freezeImg) {
+        freezeImg.src = dataUrl;
+        freezeImg.classList.add('show');
+    }
+    // 定格画面已含新闻边框，临时隐藏实时边框层避免重叠
+    if (overlayImg) overlayImg.style.visibility = 'hidden';
+    setCaptureStatus(true);
+
+    if (freezeTimerId) clearTimeout(freezeTimerId);
+    freezeTimerId = setTimeout(() => {
+        if (freezeImg) {
+            freezeImg.classList.remove('show');
+            freezeImg.removeAttribute('src');
+        }
+        if (overlayImg) overlayImg.style.visibility = '';
+        setCaptureStatus(false);
+        freezeTimerId = null;
+    }, CAPTURE_FREEZE_MS);
 }
 
 function makeId() {
@@ -368,12 +404,21 @@ async function handleCameraChange() {
 }
 
 async function takePhoto() {
+    // 3 秒拍照保护：定格期间忽略重复触发
+    const now = Date.now();
+    if (now < captureLockUntil) return;
+    captureLockUntil = now + CAPTURE_FREEZE_MS;
+
     flashShutter();
     const rawDataUrl = captureFrameDataUrl(0.92);
     if (!rawDataUrl) {
         showToast('Camera not ready', true);
+        captureLockUntil = 0; // 拍摄失败，立即解除保护以便重试
         return;
     }
+
+    // 取景框定格 3 秒 + 状态文字切换
+    showFreeze(rawDataUrl);
 
     const dataUrl = await downscaleDataUrl(rawDataUrl, BROADCAST_MAX_DIM, BROADCAST_QUALITY);
     const photo = {
