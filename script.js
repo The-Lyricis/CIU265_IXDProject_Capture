@@ -13,8 +13,10 @@ const canvas = document.getElementById('canvas');
 const toast = document.getElementById('toast');
 const shutter = document.getElementById('shutter-overlay');
 const cameraPicker = document.getElementById('camera-picker');
-const overlayPicker = document.getElementById('overlay-picker');
 const overlayImg = document.getElementById('overlay-img');
+const newsPrev = document.getElementById('news-prev');
+const newsNext = document.getElementById('news-next');
+const newsCurrent = document.getElementById('news-current');
 const photoWall = document.getElementById('photo-wall');
 const cells = Array.from(photoWall.querySelectorAll('.photo-cell'));
 
@@ -27,27 +29,35 @@ let currentSessionId = null;
 let currentCameraDeviceId = '';
 
 // ----------------------------------------------------
-// 新闻边框叠加：test1 -> testnews.png, test2 -> testnews2.png
-// 黑底用 screen 混合视为透明，拍照时合成进 canvas
+// 新闻边框叠加：左右箭头切换 test news 1 / test news 2
+// 黑底已是透明 PNG，contain 完整叠加进 canvas
 // ----------------------------------------------------
-const OVERLAY_SOURCES = {
-    test1: './testnews.png',
-    test2: './testnews2.png',
-};
-let currentOverlayKey = 'test1';
+const OVERLAYS = [
+    { key: 'test1', label: 'test news 1', src: './testnews.png' },
+    { key: 'test2', label: 'test news 2', src: './testnews2.png' },
+];
+let overlayIndex = 0;
+let currentOverlayKey = OVERLAYS[0].key;
 const overlayImages = {};
 
 function preloadOverlays() {
-    for (const [key, src] of Object.entries(OVERLAY_SOURCES)) {
+    for (const o of OVERLAYS) {
         const img = new Image();
-        img.src = src;
-        overlayImages[key] = img;
+        img.src = o.src;
+        overlayImages[o.key] = img;
     }
 }
 
 function applyOverlaySelection() {
-    currentOverlayKey = overlayPicker?.value || 'test1';
-    if (overlayImg) overlayImg.src = OVERLAY_SOURCES[currentOverlayKey] || '';
+    const o = OVERLAYS[overlayIndex];
+    currentOverlayKey = o.key;
+    if (overlayImg) overlayImg.src = o.src;
+    if (newsCurrent) newsCurrent.textContent = o.label;
+}
+
+function stepOverlay(delta) {
+    overlayIndex = (overlayIndex + delta + OVERLAYS.length) % OVERLAYS.length;
+    applyOverlaySelection();
 }
 
 // 把图片以 object-fit: contain 的方式完整放入目标尺寸（不裁切，居中留边）
@@ -443,7 +453,8 @@ function handleShutterKey(event) {
 photoWall.addEventListener('click', handleWallClick);
 window.addEventListener('keydown', handleShutterKey);
 cameraPicker?.addEventListener('change', handleCameraChange);
-overlayPicker?.addEventListener('change', applyOverlaySelection);
+newsPrev?.addEventListener('click', () => stepOverlay(-1));
+newsNext?.addEventListener('click', () => stepOverlay(1));
 
 preloadOverlays();
 applyOverlaySelection();
