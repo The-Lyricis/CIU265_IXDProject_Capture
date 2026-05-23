@@ -375,6 +375,13 @@ async function populateCameraPicker() {
 }
 
 async function setupCamera() {
+    // getUserMedia 仅在安全上下文可用（https 或 http://localhost）；用 file:// 直接打开会拿不到 mediaDevices
+    if (!navigator.mediaDevices?.getUserMedia) {
+        console.error('navigator.mediaDevices 不可用 —— 多半是非安全上下文（file:// 或非 https）');
+        showToast('Camera needs https / localhost', true);
+        return;
+    }
+
     const constraints = {
         video: currentCameraDeviceId
             ? { deviceId: { exact: currentCameraDeviceId } }
@@ -391,10 +398,12 @@ async function setupCamera() {
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         activeStream = stream;
         video.srcObject = stream;
+        await video.play().catch(() => {});
         await populateCameraPicker();
     } catch (err) {
         console.error('Failed to access camera', err);
-        showToast('Camera unavailable', true);
+        // 暴露真实原因便于排查：NotAllowedError(未授权) / NotFoundError(无设备) / NotReadableError(被占用) 等
+        showToast(`Camera: ${err.name || 'unavailable'}`, true);
     }
 }
 
@@ -515,9 +524,16 @@ newsNext?.addEventListener('click', () => stepOverlay(1));
 preloadOverlays();
 applyOverlaySelection();
 
-await setupSupabase();
-await loadCurrentSession();
-await loadExistingPhotos();
-subscribeToPhotos();
+// 先启动摄像头并渲染，避免后端（Supabase/CDN）初始化失败或卡住时取景框一直空白
 await setupCamera();
+renderWall();
+
+try {
+    await setupSupabase();
+    await loadCurrentSession();
+    await loadExistingPhotos();
+    subscribeToPhotos();
+} catch (err) {
+    console.warn('[capture] backend init failed:', err);
+}
 renderWall();
