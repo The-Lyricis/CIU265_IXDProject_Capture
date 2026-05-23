@@ -76,7 +76,7 @@ function drawContain(ctx, img, cw, ch) {
 function showToast(message, isError = false) {
     if (!toast) return;
     toast.textContent = message;
-    toast.style.background = isError ? '#b53a3a' : '#1f8f4a';
+    toast.style.background = isError ? '#a93a32' : '#181818';
     toast.classList.add('show');
     if (toastTimerId) clearTimeout(toastTimerId);
     toastTimerId = setTimeout(() => toast.classList.remove('show'), 2200);
