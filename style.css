@@ -228,8 +228,13 @@ body {
     border: 1px solid var(--line);
     border-radius: 0;
     padding: 13px 16px;
+    min-height: 114px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: Georgia, 'Times New Roman', serif;
     font-size: clamp(16px, 1.35vw, 22px);
+    line-height: 1.35;
     color: var(--ink);
     box-shadow: none;
     user-select: none;

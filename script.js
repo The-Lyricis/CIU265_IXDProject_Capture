@@ -35,8 +35,9 @@ let currentCameraDeviceId = '';
 // 黑底已是透明 PNG，contain 完整叠加进 canvas
 // ----------------------------------------------------
 const OVERLAYS = [
-    { key: 'test1', label: 'test news 1', src: './testnews.png' },
-    { key: 'test2', label: 'test news 2', src: './testnews2.png' },
+    { key: 'test1', label: 'Farewell to Route 16: Gothenburg\u2019s Iconic Bus Line Discontinued', src: './testnews.png' },
+    { key: 'test2', label: 'Studentilska mot Chalmers nya logotyp: \u201DSkitfult\u201D', src: './testnews2.png' },
+    { key: 'test3', label: 'G\u00F6teborgsvarvet 2026 \u2013 f\u00F6lj folkfesten h\u00E4r', src: './testnews3.png' },
 ];
 let overlayIndex = 0;
 let currentOverlayKey = OVERLAYS[0].key;
