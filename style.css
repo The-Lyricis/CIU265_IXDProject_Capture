@@ -394,6 +394,8 @@ body {
 }
 
 .vote-btn {
+    position: relative;
+    overflow: hidden;
     padding: 4px 13px;
     background: transparent;
     color: var(--ink);
@@ -405,6 +407,22 @@ body {
     cursor: pointer;
     min-width: 58px;
     transition: transform 0.1s ease, background 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+.vote-label {
+    position: relative;
+    z-index: 1;
+}
+
+.vote-progress {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background: rgba(169, 58, 50, 0.55);
+    z-index: 0;
+    pointer-events: none;
 }
 
 .vote-btn:hover:not(:disabled) {

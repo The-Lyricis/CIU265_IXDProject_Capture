@@ -91,6 +91,58 @@ function flashShutter() {
 }
 
 // ----------------------------------------------------
+// 快门音效：用 Web Audio 合成「咔嚓」声，无需外部音频文件
+// AudioContext 在首次拍照（用户按键手势）时创建/恢复，满足自动播放策略
+// ----------------------------------------------------
+let shutterAudioCtx = null;
+
+function getAudioCtx() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!shutterAudioCtx) shutterAudioCtx = new AC();
+    if (shutterAudioCtx.state === 'suspended') shutterAudioCtx.resume();
+    return shutterAudioCtx;
+}
+
+// 一段极短的带通白噪声 = 一下机械「咔」声
+function playShutterClick(ctx, startTime, { duration = 0.05, freq = 2200, gain = 0.5 } = {}) {
+    const frameCount = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, frameCount, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < frameCount; i += 1) {
+        const env = Math.pow(1 - i / frameCount, 2.2); // 快速指数衰减包络
+        data[i] = (Math.random() * 2 - 1) * env;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = 'bandpass';
+    bandpass.frequency.value = freq;
+    bandpass.Q.value = 0.8;
+
+    const amp = ctx.createGain();
+    amp.gain.value = gain;
+
+    src.connect(bandpass).connect(amp).connect(ctx.destination);
+    src.start(startTime);
+    src.stop(startTime + duration);
+}
+
+function playShutterSound() {
+    try {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const t = ctx.currentTime;
+        // 两声：先「咔」(反光镜抬起/快门开)，约 70ms 后「嚓」(快门关)
+        playShutterClick(ctx, t, { duration: 0.05, freq: 2400, gain: 0.55 });
+        playShutterClick(ctx, t + 0.07, { duration: 0.06, freq: 1600, gain: 0.45 });
+    } catch (error) {
+        console.warn('[capture] shutter sound failed:', error.message);
+    }
+}
+
+// ----------------------------------------------------
 // 拍照保护 & 定格：拍下后取景框定格 3 秒，期间禁止再次触发
 // ----------------------------------------------------
 const CAPTURE_FREEZE_MS = 3000;
@@ -180,10 +232,38 @@ function getFifoPhotos() {
         .slice(0, FIFO_SLOTS);
 }
 
+// 投票按钮始终显示「VOTE」文字 + 一条进度条：点击后置灰，进度条从左到右读条 5 秒
+function ensureVoteStructure(btn) {
+    if (btn.querySelector('.vote-label')) return;
+    btn.textContent = '';
+    const label = document.createElement('span');
+    label.className = 'vote-label';
+    label.textContent = 'VOTE';
+    const progress = document.createElement('span');
+    progress.className = 'vote-progress';
+    btn.append(label, progress);
+}
+
+function setVoteProgress(btn, fraction) {
+    const progress = btn.querySelector('.vote-progress');
+    if (!progress) return;
+    if (fraction == null) {
+        // 不在冷却：立即清空（无过渡，避免读条往回缩）
+        progress.style.transition = 'none';
+        progress.style.width = '0%';
+    } else {
+        const pct = Math.max(0, Math.min(100, fraction * 100));
+        // 250ms 过渡刚好衔接定时器步进，读条平滑
+        progress.style.transition = 'width 250ms linear';
+        progress.style.width = `${pct}%`;
+    }
+}
+
 function renderCell(cell, photo) {
     const slot = cell.querySelector('.photo-slot');
     const btn = cell.querySelector('.vote-btn');
     const countEl = cell.querySelector('.vote-count');
+    ensureVoteStructure(btn);
 
     if (photo) {
         cell.dataset.photoId = photo.id;
@@ -199,13 +279,20 @@ function renderCell(cell, photo) {
         const cooldownEnd = voteCooldownUntil.get(photo.id);
         const onCooldown = cooldownEnd && cooldownEnd > Date.now();
         btn.disabled = !!onCooldown;
-        btn.textContent = onCooldown ? `${Math.ceil((cooldownEnd - Date.now()) / 1000)}s` : 'VOTE';
+        btn.classList.toggle('cooling', !!onCooldown);
+        if (onCooldown) {
+            const elapsed = VOTE_COOLDOWN_MS - (cooldownEnd - Date.now());
+            setVoteProgress(btn, elapsed / VOTE_COOLDOWN_MS);
+        } else {
+            setVoteProgress(btn, null);
+        }
     } else {
         delete cell.dataset.photoId;
         slot.innerHTML = '';
         countEl.textContent = '0';
         btn.disabled = true;
-        btn.textContent = 'VOTE';
+        btn.classList.remove('cooling');
+        setVoteProgress(btn, null);
     }
 }
 
@@ -420,6 +507,7 @@ async function takePhoto() {
     captureLockUntil = now + CAPTURE_FREEZE_MS;
 
     flashShutter();
+    playShutterSound();
     const rawDataUrl = captureFrameDataUrl(0.92);
     if (!rawDataUrl) {
         showToast('Camera not ready', true);
