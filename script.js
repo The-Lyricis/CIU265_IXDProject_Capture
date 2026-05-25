@@ -91,52 +91,19 @@ function flashShutter() {
 }
 
 // ----------------------------------------------------
-// 快门音效：用 Web Audio 合成「咔嚓」声，无需外部音频文件
-// AudioContext 在首次拍照（用户按键手势）时创建/恢复，满足自动播放策略
+// 快门音效：播放 index 同目录下的 button.mp3
+// 在拍照（用户按键手势）时触发，满足浏览器自动播放策略
 // ----------------------------------------------------
-let shutterAudioCtx = null;
-
-function getAudioCtx() {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return null;
-    if (!shutterAudioCtx) shutterAudioCtx = new AC();
-    if (shutterAudioCtx.state === 'suspended') shutterAudioCtx.resume();
-    return shutterAudioCtx;
-}
-
-// 一段极短的带通白噪声 = 一下机械「咔」声
-function playShutterClick(ctx, startTime, { duration = 0.05, freq = 2200, gain = 0.5 } = {}) {
-    const frameCount = Math.max(1, Math.floor(ctx.sampleRate * duration));
-    const buffer = ctx.createBuffer(1, frameCount, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < frameCount; i += 1) {
-        const env = Math.pow(1 - i / frameCount, 2.2); // 快速指数衰减包络
-        data[i] = (Math.random() * 2 - 1) * env;
-    }
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-
-    const bandpass = ctx.createBiquadFilter();
-    bandpass.type = 'bandpass';
-    bandpass.frequency.value = freq;
-    bandpass.Q.value = 0.8;
-
-    const amp = ctx.createGain();
-    amp.gain.value = gain;
-
-    src.connect(bandpass).connect(amp).connect(ctx.destination);
-    src.start(startTime);
-    src.stop(startTime + duration);
-}
+const shutterAudio = new Audio('./button.mp3');
+shutterAudio.preload = 'auto';
 
 function playShutterSound() {
     try {
-        const ctx = getAudioCtx();
-        if (!ctx) return;
-        const t = ctx.currentTime;
-        // 两声：先「咔」(反光镜抬起/快门开)，约 70ms 后「嚓」(快门关)
-        playShutterClick(ctx, t, { duration: 0.05, freq: 2400, gain: 0.55 });
-        playShutterClick(ctx, t + 0.07, { duration: 0.06, freq: 1600, gain: 0.45 });
+        shutterAudio.currentTime = 0;
+        const played = shutterAudio.play();
+        if (played && typeof played.catch === 'function') {
+            played.catch((error) => console.warn('[capture] shutter sound failed:', error.message));
+        }
     } catch (error) {
         console.warn('[capture] shutter sound failed:', error.message);
     }
