@@ -94,7 +94,7 @@ function flashShutter() {
 // 快门音效：播放 index 同目录下的 button.mp3
 // 在拍照（用户按键手势）时触发，满足浏览器自动播放策略
 // ----------------------------------------------------
-const shutterAudio = new Audio('./button.mp3');
+const shutterAudio = new Audio('/button.mp3');
 shutterAudio.preload = 'auto';
 
 function playShutterSound() {
